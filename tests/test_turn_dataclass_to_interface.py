@@ -1,0 +1,132 @@
+from typing import List
+from py_writes_ts.class_to_interface import generate_typescript_interfaces, py_type_to_ts_string
+from dataclasses import dataclass
+
+def test_transforms_simple_dataclass() -> None:
+    @dataclass
+    class Data:
+        this_is_a_string: str
+        this_is_an_int: int
+        this_is_a_float: float
+        this_is_a_bool: bool
+
+    out = generate_typescript_interfaces([Data])
+
+    print(out)
+
+    assert out == """interface Data {
+    this_is_a_string: string;
+    this_is_an_int: number;
+    this_is_a_float: number;
+    this_is_a_bool: boolean;
+}
+"""
+
+
+def test_transforms_dataclass_with_list() -> None:
+    @dataclass
+    class Data:
+        list: List[str]
+
+    out = generate_typescript_interfaces([Data])
+
+    print(out)
+
+    assert out == """interface Data {
+    list: string[];
+}
+"""
+
+
+def test_transforms_nested_dataclasses() -> None:
+    @dataclass
+    class Exit:
+        name: str
+        description: str
+        destination_room_id: str
+
+    @dataclass
+    class Room:
+        id: str
+        name: str
+        description: str
+        exits: List[Exit]
+
+    @dataclass
+    class World:
+        rooms: List[Room]
+
+    out = generate_typescript_interfaces([World, Room, Exit])
+
+    print(out)
+
+    assert out == """interface World {
+    rooms: Room[];
+}
+
+interface Room {
+    id: string;
+    name: string;
+    description: string;
+    exits: Exit[];
+}
+
+interface Exit {
+    name: string;
+    description: string;
+    destination_room_id: string;
+}
+"""
+
+
+def test_transforms_nested_dataclasses_exploding_not_included_classes() -> None:
+    @dataclass
+    class Exit:
+        name: str
+        description: str
+        destination_room_id: str
+
+    @dataclass
+    class Room:
+        id: str
+        name: str
+        description: str
+        exits: List[Exit]
+
+    @dataclass
+    class World:
+        rooms: List[Room]
+
+    out = generate_typescript_interfaces([World])
+
+    print(out)
+
+    assert out == """interface World {
+    rooms: { id: string, name: string, description: string, exits: { name: string, description: string, destination_room_id: string }[] }[];
+}
+"""
+
+def test_py_type_to_ts_string() -> None:
+
+    @dataclass
+    class Exit:
+        name: str
+        description: str
+        destination_room_id: str
+
+    @dataclass
+    class Room:
+        id: str
+        name: str
+        description: str
+        exits: List[Exit]
+
+    @dataclass
+    class World:
+        rooms: List[Room]
+
+    out = py_type_to_ts_string(World, {})
+
+    print(out)
+
+    assert out == """{ rooms: { id: string, name: string, description: string, exits: { name: string, description: string, destination_room_id: string }[] }[] }"""
