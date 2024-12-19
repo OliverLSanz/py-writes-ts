@@ -102,7 +102,16 @@ def test_transforms_nested_dataclasses_exploding_not_included_classes() -> None:
     print(out)
 
     assert out == """interface World {
-    rooms: { id: string, name: string, description: string, exits: { name: string, description: string, destination_room_id: string }[] }[];
+    rooms: {
+        id: string,
+        name: string,
+        description: string,
+        exits: {
+            name: string,
+            description: string,
+            destination_room_id: string
+        }[]
+    }[];
 }
 """
 
@@ -129,4 +138,15 @@ def test_py_type_to_ts_string() -> None:
 
     print(out)
 
-    assert out == """{ rooms: { id: string, name: string, description: string, exits: { name: string, description: string, destination_room_id: string }[] }[] }"""
+    assert out == """{
+    rooms: {
+        id: string,
+        name: string,
+        description: string,
+        exits: {
+            name: string,
+            description: string,
+            destination_room_id: string
+        }[]
+    }[]
+}"""

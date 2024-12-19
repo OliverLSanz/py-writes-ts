@@ -1,39 +1,51 @@
 from typing import Type, List, Dict, Any, get_type_hints
 from py_writes_ts.type_translator import python_type_to_typescript
 
-def py_type_to_ts_string(py_type: Type, allowed_classes: Dict[str, Type[Any]]) -> str:
+def py_type_to_ts_string(py_type: Type, allowed_classes: Dict[str, Type[Any]], indent: int = 0) -> str:
+    """
+    Convierte un tipo Python en una definición TypeScript, con soporte para indentación.
+    :param py_type: El tipo de Python a convertir.
+    :param allowed_classes: Diccionario de clases permitidas para referencias.
+    :param indent: Nivel de indentación actual.
+    :return: String con el código TypeScript correspondiente.
+    """
+    INDENTATION = "    "  # Define el tamaño de la indentación
+    current_indent = INDENTATION * indent
+    next_indent = INDENTATION * (indent + 1)
+
     if hasattr(py_type, "__annotations__"):
         if py_type.__name__ in allowed_classes:
-            # Use a reference to the class name if it's in the allowed list
+            # Usar una referencia al nombre de la clase si está en la lista permitida
             return py_type.__name__
         else:
-            # Expand inline for nested types not in the allowed list
+            # Expandir en línea para tipos anidados no permitidos
             nested_properties = get_type_hints(py_type)
-            nested_body = ", ".join(
-                f"{nested_prop}: {py_type_to_ts_string(nested_type, allowed_classes)}"
+            nested_body = ",\n".join(
+                f"{next_indent}{nested_prop}: {py_type_to_ts_string(nested_type, allowed_classes, indent + 1)}"
                 for nested_prop, nested_type in nested_properties.items()
             )
-            return f"{{ {nested_body} }}"
+            return f"{{\n{nested_body}\n{current_indent}}}"
     elif hasattr(py_type, "__origin__") and py_type.__origin__ == list:
-        # Handle List types
+        # Manejar tipos List
         item_type = py_type.__args__[0]
         if hasattr(item_type, "__annotations__"):
             if item_type.__name__ in allowed_classes:
-                # Use a reference to the class name for list items in the allowed list
+                # Usar una referencia al nombre de la clase para listas permitidas
                 return f"{item_type.__name__}[]"
             else:
-                # Expand inline for nested types in lists not in the allowed list
+                # Expandir en línea para tipos anidados en listas no permitidos
                 nested_properties = get_type_hints(item_type)
-                nested_body = ", ".join(
-                    f"{nested_prop}: {py_type_to_ts_string(nested_type, allowed_classes)}"
+                nested_body = ",\n".join(
+                    f"{next_indent}{nested_prop}: {py_type_to_ts_string(nested_type, allowed_classes, indent + 1)}"
                     for nested_prop, nested_type in nested_properties.items()
                 )
-                return f"{{ {nested_body} }}[]"
+                return f"{{\n{nested_body}\n{current_indent}}}[]"
         else:
-            return f"{py_type_to_ts_string(item_type, allowed_classes)}[]"
+            return f"{py_type_to_ts_string(item_type, allowed_classes, indent)}[]"
     else:
-        # Translate simple or unsupported types
+        # Traducir tipos simples o no soportados
         return python_type_to_typescript(py_type)
+
 
 def generate_typescript_interfaces(interface_names_and_classes: List[Type]) -> str:
     """
@@ -61,7 +73,7 @@ def generate_typescript_interfaces(interface_names_and_classes: List[Type]) -> s
         interface_definition = [f"interface {interface_name} {{"]
 
         for prop, py_type in properties.items():
-            ts_type = py_type_to_ts_string(py_type, allowed_classes)
+            ts_type = py_type_to_ts_string(py_type, allowed_classes, indent=1)
             interface_definition.append(f"    {prop}: {ts_type};")
 
         interface_definition.append("}")
