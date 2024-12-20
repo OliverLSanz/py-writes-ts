@@ -1,5 +1,35 @@
-from typing import Type, List, Dict, Any, get_type_hints
+from typing import Type, List, Dict, Any, Union, get_type_hints
 from py_writes_ts.type_translator import python_type_to_typescript
+
+from typing import Type, get_origin, get_args
+
+def get_type_name(py_type: Type) -> str:
+    origin = get_origin(py_type)
+    if origin is not None:
+        # Es un tipo genérico
+        origin_name = getattr(origin, '__name__', None)
+        if origin_name is None:
+            # Para tipos como Union, List, Dict, etc. en 'typing', el __name__ no está definido.
+            # Ejemplo: str(origin) podría ser 'typing.Union', 'typing.List', etc.
+            origin_str = str(origin)
+            # Tomamos la última parte después del punto, por ejemplo: 'typing.Union' -> 'Union'
+            origin_name = origin_str.split('.')[-1] if '.' in origin_str else origin_str
+
+        args = get_args(py_type)
+        if args:
+            args_names = [get_type_name(a) for a in args]
+            return f"{origin_name}<{', '.join(args_names)}>"
+        else:
+            # Tipo genérico sin args (raro, pero posible)
+            return origin_name
+    else:
+        # No es un genérico
+        if hasattr(py_type, "__name__"):
+            return py_type.__name__
+        else:
+            # Fallback si no tiene __name__
+            return str(py_type)
+
 
 def py_type_to_ts_string(py_type: Type, allowed_classes: Dict[str, Type[Any]], indent: int = 0) -> str:
     """
@@ -18,7 +48,7 @@ def py_type_to_ts_string(py_type: Type, allowed_classes: Dict[str, Type[Any]], i
             # Usar una referencia al nombre de la clase si está en la lista permitida
             return py_type.__name__
         else:
-            # Expandir en línea para tipos anidados no permitidos
+            # Expandir para tipos anidados no permitidos
             nested_properties = get_type_hints(py_type)
             nested_body = ",\n".join(
                 f"{next_indent}{nested_prop}: {py_type_to_ts_string(nested_type, allowed_classes, indent + 1)}"
@@ -42,6 +72,60 @@ def py_type_to_ts_string(py_type: Type, allowed_classes: Dict[str, Type[Any]], i
                 return f"{{\n{nested_body}\n{current_indent}}}[]"
         else:
             return f"{py_type_to_ts_string(item_type, allowed_classes, indent)}[]"
+    elif hasattr(py_type, "__origin__") and py_type.__origin__ == Union:
+        # Caso: Union[...] incluyendo Optional (Union[T, None])
+        union_args = py_type.__args__
+        # Verificamos si tenemos NoneType (Optional)
+        if type(None) in union_args:
+            # Tipo opcional: Union[T, None]
+            non_none_args = [arg for arg in union_args if arg is not type(None)]
+            # Si solo hay un tipo además de None, es T | null
+            if len(non_none_args) == 1:
+                return f"{py_type_to_ts_string(non_none_args[0], allowed_classes, indent)} | null"
+            else:
+                # Varios tipos + null
+                union_parts = " | ".join(py_type_to_ts_string(arg, allowed_classes, indent) for arg in non_none_args)
+                return f"{union_parts} | null"
+        else:
+            # Union genérico sin None
+            union_parts = " | ".join(py_type_to_ts_string(arg, allowed_classes, indent) for arg in union_args)
+            return union_parts
+    elif hasattr(py_type, "__origin__"):
+        origin = py_type.__origin__
+        args = py_type.__args__
+        if hasattr(origin, "__annotations__"):
+            type_params = getattr(origin, '__parameters__', ())  # tuple of typevars
+            typevar_to_type = dict(zip(type_params, args))  # dict of typevar to its associated type
+        
+            def substitute_typevars(t):
+                # Reemplaza las TypeVar por sus args concretos
+                if t in typevar_to_type:
+                    return typevar_to_type[t]
+                # No entiendo la siguiente parte, habra que probarla
+                elif hasattr(t, '__origin__') and hasattr(t, '__args__'):
+                    # Recursivo para tipos compuestos
+                    new_args = tuple(substitute_typevars(a) for a in t.__args__)
+                    # Crear un nuevo tipo genérico a partir del origin con args sustituidos
+                    return t.__origin__[new_args]
+                return t
+            
+            if origin.__name__ in allowed_classes:
+                # Si la clase base está permitida, generar una notación genérica TS: Ej: Origin<Arg1, Arg2>
+                arg_ts_list = [py_type_to_ts_string(substitute_typevars(a), allowed_classes, indent) for a in args]
+                return f"{origin.__name__}<{', '.join(arg_ts_list)}>"
+            else:
+                # Expandir inline la clase genérica con sus propiedades sustituidas
+                nested_properties = get_type_hints(origin)
+                substituted_properties = {property_name: substitute_typevars(type) for property_name, type in nested_properties.items()}
+                nested_body = ",\n".join(
+                    f"{next_indent}{prop}: {py_type_to_ts_string(t, allowed_classes, indent + 1)}"
+                    for prop, t in substituted_properties.items()
+                )
+                return f"{{\n{nested_body}\n{current_indent}}}"
+        else:
+            # Es un genérico sin anotaciones (podría ser un Union, Dict, o un tipo genérico integrado)
+            # Llamar a python_type_to_typescript para manejo por defecto.
+            return python_type_to_typescript(py_type)
     else:
         # Traducir tipos simples o no soportados
         return python_type_to_typescript(py_type)

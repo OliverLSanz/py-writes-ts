@@ -1,6 +1,7 @@
-from typing import List
+from typing import Generic, List, Optional, TypeVar, Union
 from py_writes_ts.class_to_interface import generate_typescript_interfaces, py_type_to_ts_string
 from dataclasses import dataclass
+import pytest
 
 def test_transforms_simple_dataclass() -> None:
     @dataclass
@@ -150,3 +151,74 @@ def test_py_type_to_ts_string() -> None:
         }[]
     }[]
 }"""
+
+
+def test_optional_fields() -> None:
+    @dataclass
+    class ResponseModel():
+        success: bool
+        data: Optional[str] = None
+        error: Optional[str] = None
+
+    out = py_type_to_ts_string(ResponseModel, {})
+    # out = generate_typescript_interfaces([ResponseModel[Exit], Exit])
+
+    print(out)
+
+    assert out == """{
+    success: boolean,
+    data: string | null,
+    error: string | null
+}"""
+
+def test_union_fields() -> None:
+    @dataclass
+    class Exit:
+        name: str
+        description: str
+        destination_room_id: str
+
+    @dataclass
+    class ResponseModel():
+        success: bool
+        data: Union[str, int]
+        error: Union[str, bool, Exit]
+
+    out = py_type_to_ts_string(ResponseModel, {})
+    # out = generate_typescript_interfaces([ResponseModel[Exit], Exit])
+
+    print(out)
+
+    assert out == """{
+    success: boolean,
+    data: string | number,
+    error: string | boolean | {
+        name: string,
+        description: string,
+        destination_room_id: string
+    }
+}"""
+
+# @pytest.mark.skip(reason="todo")
+def test_generic_type() -> None:
+    D = TypeVar("D")
+
+    @dataclass
+    class ResponseModel(Generic[D]):
+        success: bool
+        data: Optional[D] = None
+        error: Optional[str] = None
+
+    @dataclass
+    class Exit:
+        name: str
+        description: str
+        destination_room_id: str
+
+    # out = py_type_to_ts_string(ResponseModel[Exit], {})
+    out = generate_typescript_interfaces([ResponseModel[Exit], Exit])
+
+    print(out)
+
+    assert out == """???"""
+
