@@ -40,6 +40,10 @@ def _is_generic(type: Type) -> bool:
     """
     return get_origin(type) is None and len(getattr(type, "__parameters__", [])) > 0
 
+def _is_type_annotated_class(py_type: Type) -> bool:
+    return hasattr(py_type, "__annotations__") and len(get_type_hints(py_type)) > 0
+
+
 def ts_name(py_type: Type) -> str:
     """Returns the typescript interface ts_name for a python type
     
@@ -82,7 +86,7 @@ def py_type_to_ts_string(py_type: Type, allowed_refs: List[str], indent: int = 0
     current_indent = INDENTATION * indent
     next_indent = INDENTATION * (indent + 1)
 
-    if hasattr(py_type, "__annotations__"):
+    if _is_type_annotated_class(py_type):
         if ts_name(py_type) in allowed_refs:
             return ts_name(py_type)
         else:
