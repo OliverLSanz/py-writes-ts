@@ -16,6 +16,7 @@ def _primitive_to_ts(py_type: Union[Type, str]) -> str:
         float: "number",
         bool: "boolean",
         type(None): "null",
+        None: "null",
         Any: "any",
     }
 
@@ -111,6 +112,8 @@ def py_type_to_ts_string(py_type: Type, allowed_refs: List[str], indent: int = 0
             union_str = f"{union_str} | null"
         return union_str
     elif _is_parametrized_generic(py_type):
+        if ts_name(py_type) in allowed_refs:
+            return ts_name(py_type)
         origin = get_origin(py_type)
         assert origin  # damn mypy
         args = get_args(py_type)
@@ -162,7 +165,7 @@ def generate_typescript_interfaces(py_types: List[Type]) -> str:
 
         allowed_classes_excluding_cls = [ts_name for ts_name in allowed_refs if ts_name != interface_name]
         type_body = py_type_to_ts_string(cls, allowed_classes_excluding_cls)
-        interface_definition = f"interface {interface_name} {type_body}\n"
+        interface_definition = f"export interface {interface_name} {type_body}\n"
 
         processed_interfaces[interface_name] = interface_definition
 

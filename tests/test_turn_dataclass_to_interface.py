@@ -1,5 +1,5 @@
 from typing import Generic, List, Optional, TypeVar, Union
-from py_writes_ts.class_to_interface import generate_typescript_interfaces, py_type_to_ts_string
+from py_writes_ts.class_to_interface import generate_typescript_interfaces, py_type_to_ts_string, ts_name
 from dataclasses import dataclass
 import pytest
 
@@ -15,7 +15,7 @@ def test_transforms_simple_dataclass() -> None:
 
     print(out)
 
-    assert out == """interface Data {
+    assert out == """export interface Data {
     this_is_a_string: string;
     this_is_an_int: number;
     this_is_a_float: number;
@@ -33,7 +33,7 @@ def test_transforms_dataclass_with_list() -> None:
 
     print(out)
 
-    assert out == """interface Data {
+    assert out == """export interface Data {
     list: string[];
 }
 """
@@ -61,18 +61,18 @@ def test_transforms_nested_dataclasses() -> None:
 
     print(out)
 
-    assert out == """interface World {
+    assert out == """export interface World {
     rooms: Room[];
 }
 
-interface Room {
+export interface Room {
     id: string;
     name: string;
     description: string;
     exits: Exit[];
 }
 
-interface Exit {
+export interface Exit {
     name: string;
     description: string;
     destination_room_id: string;
@@ -102,7 +102,7 @@ def test_transforms_nested_dataclasses_exploding_not_included_classes() -> None:
 
     print(out)
 
-    assert out == """interface World {
+    assert out == """export interface World {
     rooms: {
         id: string;
         name: string;
@@ -151,6 +151,28 @@ def testpy_type_to_ts_string() -> None:
         }[];
     }[];
 }"""
+
+
+def testpy_ty_to_ts_string_does_not_expand_parametrized_generic_included_in_refs() -> None:
+    T = TypeVar("T")
+
+    @dataclass
+    class Container(Generic[T]):
+        thing: T
+
+    @dataclass
+    class Patata:
+        size: int
+        cooked: bool
+
+
+    out = py_type_to_ts_string(Container[Patata], [ts_name(Container[Patata])])
+
+    print(ts_name(Container[Patata]))
+
+    print(out)
+
+    assert out == """PatataContainer"""
 
 
 def test_optional_fields() -> None:
@@ -220,7 +242,7 @@ def test_unparametrized_generic_type() -> None:
 
     print(out)
 
-    assert out == """interface ResponseModel<D> {
+    assert out == """export interface ResponseModel<D> {
     success: boolean;
     data: D | null;
     error: string | null;
@@ -271,7 +293,7 @@ def test_generic_type_both_parametrized_and_unparametrized() -> None:
 
     print(out)
 
-    assert out == """interface ExitResponseModel extends ResponseModel<Exit> { }
+    assert out == """export interface ExitResponseModel extends ResponseModel<Exit> { }
 
 interface ResponseModel<D> {
     success: boolean;
@@ -306,13 +328,13 @@ def test_parametrized_generic_type() -> None:
 
     print(out)
 
-    assert out == """interface ExitResponseModel {
+    assert out == """export interface ExitResponseModel {
     success: boolean;
     data: Exit | null;
     error: string | null;
 }
 
-interface Exit {
+export interface Exit {
     name: string;
     description: string;
     destination_room_id: string;
@@ -356,7 +378,7 @@ def test_subclass_of_parametrized_generic() -> None:
 
     out = generate_typescript_interfaces([Login])
     print(out)
-    assert out == """interface Login {
+    assert out == """export interface Login {
     password: string;
 }
 """

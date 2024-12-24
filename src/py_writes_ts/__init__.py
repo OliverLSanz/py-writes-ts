@@ -1,2 +1,4 @@
-from .class_to_interface import generate_typescript_interfaces
+from .class_to_interface import generate_typescript_interfaces, ts_name
 from .rename_interfaces import rename_interfaces
+from .import_generator import generate_typescript_import
+from .function_generator import generate_typescript_function
