@@ -38,7 +38,7 @@ def _is_generic(type: Type) -> bool:
     _is_generic(NonGenericClass) -> False
     _is_parametrized_generic(GenericClass[str]) -> False
     """
-    return get_origin(type) is None and hasattr(type, "__parameters__")
+    return get_origin(type) is None and len(getattr(type, "__parameters__", [])) > 0
 
 def ts_name(py_type: Type) -> str:
     """Returns the typescript interface ts_name for a python type
@@ -169,27 +169,3 @@ def generate_typescript_interfaces(py_types: List[Type]) -> str:
 
     # Combine all processed interfaces
     return "\n".join(processed_interfaces.values())
-
-
-# Example usage
-if __name__ == "__main__":
-    class Exit:
-        ts_name: str
-        description: str
-        destination_room_id: str
-
-    class Room:
-        id: str
-        ts_name: str
-        description: str
-        exits: List[Exit]
-
-    # Case 1: Exit included in the list
-    typescript_code_included = generate_typescript_interfaces([Room, Exit])
-    print("Case 1: Exit included")
-    print(typescript_code_included)
-
-    # Case 2: Exit not included in the list
-    typescript_code_not_included = generate_typescript_interfaces([Room])
-    print("Case 2: Exit not included")
-    print(typescript_code_not_included)

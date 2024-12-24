@@ -340,3 +340,23 @@ def test_name() -> None:
     print(out)
     assert out == """ResponseModel<D>"""   
 
+
+def test_subclass_of_parametrized_generic() -> None:
+    T = TypeVar('T')
+
+    class Command(Generic[T]):
+        pass
+
+    @dataclass
+    class LoginResult:
+        user_id: str
+
+    class Login(Command[LoginResult]):
+        password: str
+
+    out = generate_typescript_interfaces([Login])
+    print(out)
+    assert out == """interface Login {
+    password: string;
+}
+"""

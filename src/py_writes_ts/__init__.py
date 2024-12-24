@@ -1,0 +1,1 @@
+from .class_to_interface import generate_typescript_interfaces
