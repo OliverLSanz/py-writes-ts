@@ -1,31 +1,21 @@
-from typing import List, Tuple
+from typing import Any, List, Tuple, Dict
+from py_writes_ts.class_to_interface import py_type_to_ts_string, ts_name
 
-
+INDENT = "    "
 
 def generate_typescript_function(
     function_name: str,
-    parameters: List[Tuple[str, str]],
-    return_type: str,
-    body: List[str],
+    parameters: Dict[str, Any],
+    return_type: Any,
+    body: str,
+    valid_refs: List[type]
 ) -> str:
-    """
-    Generate a TypeScript function definition.
-
-    :param function_name: The name of the function.
-    :param parameters: A list of tuples where each tuple contains the parameter name and its type.
-                       Example: [("socket", "Socket"), ("callback", "(event: OtherLeftRoomData) => void")]
-    :param return_type: The return type of the function.
-                        Use "void" if the function does not return anything.
-    :param body: A list of strings representing the lines of the function body.
-                 Example: ["socket.on('other_left_room', callback)"]
-    :return: A string with the TypeScript function definition.
-    """
-    # Generate the parameters string
-    params_str = ", ".join([f"{name}: {type_}" for name, type_ in parameters])
-
-    # Generate the function definition
-    function_def = f"function {function_name}({params_str}): {return_type} {{\n"
-    for line in body:
-        function_def += f"    {line}\n"
+    valid_ref_names = [ts_name(ref) for ref in valid_refs]
+    params_str = f",\n{INDENT}".join([f"{name}: {py_type_to_ts_string(type_, valid_ref_names, indent=1)}" for name, type_ in parameters.items()])
+    function_def = f"""function {function_name}(
+{INDENT}{params_str}
+): {py_type_to_ts_string(return_type, valid_ref_names)} {{\n"""
+    for line in body.strip().split('\n'):
+        function_def += f"{INDENT}{line}\n"
     function_def += "}"
     return function_def
