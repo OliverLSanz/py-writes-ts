@@ -1,1 +1,2 @@
 from .class_to_interface import generate_typescript_interfaces
+from .rename_interfaces import rename_interfaces
