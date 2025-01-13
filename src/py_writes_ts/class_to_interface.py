@@ -1,4 +1,4 @@
-from typing import Type, List, Dict, Any, Union, get_type_hints, get_origin, Generic
+from typing import Literal, Type, List, Dict, Any, Union, get_type_hints, get_origin, Generic
 from typing import Type, get_origin, get_args
 
 
@@ -103,6 +103,21 @@ def py_type_to_ts_string(py_type: Type, allowed_refs: List[str], indent: int = 0
     elif get_origin(py_type) == list:
         item_type = get_args(py_type)[0]
         return f"{py_type_to_ts_string(item_type, allowed_refs, indent)}[]"
+    elif get_origin(py_type) is Literal:
+        literal_args = get_args(py_type)
+        def literal_value_to_ts(value: Any) -> str:
+            if value is None:
+                return "null"
+            elif isinstance(value, str):
+                return f"'{value}'"
+            elif isinstance(value, bool):
+                return "true" if value else "false"
+            else:
+                # for ints, floats, etc
+                return str(value)
+
+        union_of_literals = " | ".join(literal_value_to_ts(arg) for arg in literal_args)
+        return union_of_literals
     elif get_origin(py_type) == Union:  
         # This includes Optionals as Optional[str] is Union[str, None]
         union_args = get_args(py_type)

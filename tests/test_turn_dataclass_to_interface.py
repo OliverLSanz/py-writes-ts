@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Generic, List, Literal, Optional, TypeVar, Union
 from py_writes_ts.class_to_interface import generate_typescript_interfaces, py_type_to_ts_string, ts_name
 from dataclasses import dataclass
 import pytest
@@ -380,5 +380,24 @@ def test_subclass_of_parametrized_generic() -> None:
     print(out)
     assert out == """export interface Login {
     password: string;
+}
+"""
+
+
+def test_literal_type() -> None:
+    class MessageOptions():
+        display: Literal['wrap', 'box', 'underline', 'fit'] = 'wrap'
+        section: bool = True
+        fillInput: Optional[str] = None
+        asksForPassword: bool = False
+
+    out = generate_typescript_interfaces([MessageOptions])
+    print(out)
+
+    assert out == """export interface MessageOptions {
+    display: 'wrap' | 'box' | 'underline' | 'fit';
+    section: boolean;
+    fillInput: string | null;
+    asksForPassword: boolean;
 }
 """
