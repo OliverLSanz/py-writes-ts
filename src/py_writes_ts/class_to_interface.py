@@ -41,8 +41,11 @@ def _is_generic(type: Type) -> bool:
     """
     return get_origin(type) is None and len(getattr(type, "__parameters__", [])) > 0
 
-def _is_type_annotated_class(py_type: Type) -> bool:
-    return hasattr(py_type, "__annotations__") and len(get_type_hints(py_type)) > 0
+def _is_user_defined_class(py_type: Type) -> bool:
+    if isinstance(py_type, type) and py_type.__module__ != 'builtins':
+        return True
+    
+    return False
 
 
 def ts_name(py_type: Type) -> str:
@@ -87,7 +90,7 @@ def py_type_to_ts_string(py_type: Type, allowed_refs: List[str], indent: int = 0
     current_indent = INDENTATION * indent
     next_indent = INDENTATION * (indent + 1)
 
-    if _is_type_annotated_class(py_type):
+    if _is_user_defined_class(py_type):
         if ts_name(py_type) in allowed_refs:
             return ts_name(py_type)
         else:
@@ -95,10 +98,10 @@ def py_type_to_ts_string(py_type: Type, allowed_refs: List[str], indent: int = 0
             # so represent it by writting its properties
             # and types 
             nested_properties = get_type_hints(py_type)
-            nested_body = ";\n".join(
-                f"{next_indent}{nested_prop}: {py_type_to_ts_string(nested_type, allowed_refs, indent + 1)}"
+            nested_body = "".join(
+                f"{next_indent}{nested_prop}: {py_type_to_ts_string(nested_type, allowed_refs, indent + 1)};\n"
                 for nested_prop, nested_type in nested_properties.items()
-            ) + ";\n"
+            )
             return f"{{\n{nested_body}{current_indent}}}"
     elif get_origin(py_type) == list:
         item_type = get_args(py_type)[0]

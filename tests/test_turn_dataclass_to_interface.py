@@ -401,3 +401,15 @@ def test_literal_type() -> None:
     asksForPassword: boolean;
 }
 """
+
+def test_empty_dataclass() -> None:
+    @dataclass
+    class ListWorlds:
+        pass
+
+    out = generate_typescript_interfaces([ListWorlds])
+    print(out)
+
+    assert out == """export interface ListWorlds {
+}
+"""
