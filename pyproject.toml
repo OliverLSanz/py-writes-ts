@@ -1,26 +1,24 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "py_writes_ts"
-version = "2024.0.0"
-dependencies = [
-]
-requires-python = ">=3.8"
-authors = [
-  {name = "Oliver Sanz", email = "oliverlsanz@gmail.com"},
-]
-maintainers = [
-  {name = "Oliver Sanz", email = "oliverlsanz@gmail.com"},
-]
-description = "Writes typescript so you don't have to."
+name = "py-writes-ts"
+version = "1.0.1"
+description = "Generate typescript code from python"
 readme = "README.md"
-license = {file = "LICENSE.txt"}
-keywords = ["typescript"]
+authors = [{ name = "Oliver Sanz", email = "oliverlsanz@gmail.com" }]
+license = { file = "LICENSE.txt" }
 classifiers = [
-  "Programming Language :: Python"
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
 ]
+keywords = ["typescript"]
+dependencies = []
+requires-python = ">=3.12.8"
+
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [project.urls]
-Homepage = "https://example.com"
+Homepage = "https://github.com/OliverLSanz/py-writes-ts"
