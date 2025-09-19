@@ -14,6 +14,8 @@ pip install py-writes-ts
 
 ### Class to Interface
 
+The simplest example:
+
 ```python
 from py_writes_ts.class_to_interface import generate_typescript_interfaces
 from dataclasses import dataclass
@@ -38,6 +40,42 @@ export interface User {
 }
 ```
 
+We can get more complex:
+
+```python
+@dataclass
+class ResponseModel(Generic[D]):
+    success: bool
+    data: Optional[D] = None
+    error: Optional[str] = None
+
+@dataclass
+class Exit:
+    name: str
+    description: str
+    destination_room_id: str
+
+out = generate_typescript_interfaces([ResponseModel[Exit], Exit])
+
+print(out)
+```
+
+Output:
+
+```typescript
+export interface ExitResponseModel {
+    success: boolean;
+    data: Exit | null;
+    error: string | null;
+}
+
+export interface Exit {
+    name: string;
+    description: string;
+    destination_room_id: string;
+}
+```
+
 ### Function Generator
 
 ```python
@@ -54,6 +92,8 @@ class GetUserByIdResponse:
     name: str
     age: int
 
+endpoint = "get_user_by_id"
+
 code = generate_typescript_function(
     function_name="getUserById",
     parameters={
@@ -62,7 +102,7 @@ code = generate_typescript_function(
     return_type=GetUserByIdResponse,
     valid_refs=[GetUserByIdRequest, GetUserByIdResponse],
     body="""
-const response = await fetch(`/api/get_user_by_id`, {{
+const response = await fetch(`/api/{endpoint}`, {{
   method: "POST",
   headers: {{
       "Content-Type": "application/json"
@@ -102,7 +142,7 @@ export async function getUserById(
 
 ### More examples
 
-Look at the tests for more examples.
+Look at the tests for more examples, including a full example of a typescript sdk generator.
 
 ## Contributing
 
